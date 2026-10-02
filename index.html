@@ -73,10 +73,46 @@ button:focus-visible{outline:3px solid #6fa8ff;outline-offset:3px}
 .cd{transform-box:fill-box;transform-origin:50% 85%}.sm{transform-box:fill-box}
 #cv{position:fixed;inset:0;pointer-events:none;z-index:9}
 @media (prefers-reduced-motion:reduce){.pgs,.pgs .al,.pgs .ar,.st{animation:none}}
-</style></head><body>
+/* Countdown gate */
+body.locked .page{display:none}
+#launch{display:none;min-height:100vh;min-height:100svh;align-items:center;justify-content:center;text-align:center;padding:24px 16px;position:relative;overflow:hidden;background:radial-gradient(ellipse at 50% 42%,#fff8fa 0,#fce8ee 48%,#f5cbd8 100%)}
+body.locked #launch{display:flex}
+.launch-card{position:relative;width:min(620px,100%);padding:clamp(28px,7vw,54px) clamp(18px,6vw,48px);border:1px solid #fff;border-radius:30px;background:#fffafbd9;box-shadow:0 24px 70px #a7436230,inset 0 0 0 7px #fff8;backdrop-filter:blur(8px)}
+.launch-heart{font-size:clamp(42px,12vw,68px);line-height:1;animation:heartbeat 1.8s ease-in-out infinite}
+@keyframes heartbeat{50%{transform:scale(1.13)}}
+.launch-eyebrow{margin:16px 0 8px;color:#bd5a79;font:700 15px/1.2 'Gaegu',cursive;letter-spacing:3px;text-transform:uppercase}
+#launch h1{font-size:clamp(36px,10vw,68px)}
+.launch-copy{font-size:clamp(19px,5vw,24px);margin:14px auto 26px}
+.countdown{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.count-unit{padding:14px 6px 11px;border:1px solid #f4d7e0;border-radius:18px;background:linear-gradient(155deg,#fff,#fff2f6);box-shadow:0 5px 14px #c9456f12}
+.count-value{display:block;color:#c9456f;font:400 clamp(34px,9vw,54px)/1 'Bebas Neue',sans-serif;font-variant-numeric:tabular-nums}
+.count-label{display:block;margin-top:6px;color:#9d6678;font:700 14px/1 'Gaegu',cursive;letter-spacing:1px;text-transform:uppercase}
+.launch-date{font-size:17px;margin:22px auto 0;color:#976575}
+.launch-sparkle{position:absolute;opacity:.65;pointer-events:none;animation:bob 3s ease-in-out infinite}
+.launch-sparkle.one{left:8%;top:12%;font-size:30px}.launch-sparkle.two{right:8%;bottom:12%;font-size:36px;animation-delay:-1.5s}
+@media(max-width:380px){.countdown{gap:6px}.count-unit{padding:12px 3px 9px}.count-label{font-size:12px}}
+@media(prefers-reduced-motion:reduce){.launch-heart,.launch-sparkle{animation:none}}
+</style></head><body class="locked">
 <svg width="0" height="0" style="position:absolute"><clipPath id="hc" clipPathUnits="objectBoundingBox"><path d="M0.5 0.96C0.1 0.66 0 0.46 0 0.28C0 0.1 0.12 0 0.27 0C0.38 0 0.46 0.06 0.5 0.15C0.54 0.06 0.62 0 0.73 0C0.88 0 1 0.1 1 0.28C1 0.46 0.9 0.66 0.5 0.96Z"/></clipPath></svg>
 <canvas id="cv"></canvas>
 <button id="mute" type="button" aria-label="Mute music" style="display:none;position:fixed;top:calc(8px + env(safe-area-inset-top,0px));right:8px;z-index:10;margin:0;padding:2px 12px;font-size:22px">🔊</button>
+
+<section id="launch" aria-labelledby="launch-title">
+  <span class="launch-sparkle one" aria-hidden="true">✦</span><span class="launch-sparkle two" aria-hidden="true">♡</span>
+  <div class="launch-card">
+    <div class="launch-heart" aria-hidden="true">💗</div>
+    <p class="launch-eyebrow">A little surprise is on its way</p>
+    <h1 id="launch-title">Something lovely<br>is almost here</h1>
+    <p class="launch-copy">The surprise opens in…</p>
+    <div class="countdown" id="countdown" role="timer" aria-label="Countdown to the surprise">
+      <div class="count-unit"><span class="count-value" id="cd-days">00</span><span class="count-label">Days</span></div>
+      <div class="count-unit"><span class="count-value" id="cd-hours">00</span><span class="count-label">Hours</span></div>
+      <div class="count-unit"><span class="count-value" id="cd-minutes">00</span><span class="count-label">Minutes</span></div>
+      <div class="count-unit"><span class="count-value" id="cd-seconds">00</span><span class="count-label">Seconds</span></div>
+    </div>
+    <p class="launch-date">October 4, 2026 · 12:00 AM <span>(your local time)</span></p>
+  </div>
+</section>
 
 <section class="page on" id="p1">
   <img class="big" data-pg data-k="m" data-g="1" alt="">
@@ -264,4 +300,25 @@ function bdayStop(){clearTimeout(bT);if(bctx){try{bctx.close()}catch(e){}bctx=nu
 function songPlay(){if(!SONG_SRC)return;if(!aud){aud=new Audio(SONG_SRC);aud.loop=true}aud.muted=muted;aud.currentTime=SONG_START;aud.play().catch(function(){})}
 function songStop(){if(aud)aud.pause()}
 $('mute').onclick=function(){muted=!muted;this.textContent=muted?'🔇':'🔊';if(bctx)muted?bctx.suspend():bctx.resume();if(aud)aud.muted=muted};
+
+// Keep the existing birthday experience hidden until midnight on October 4, 2026.
+var launchAt=new Date(2026,9,4,0,0,0,0).getTime();
+function updateCountdown(){
+ var remaining=launchAt-Date.now();
+ if(remaining<=0){
+  document.body.classList.remove('locked');
+  clearInterval(countdownInterval);
+  return;
+ }
+ var seconds=Math.floor(remaining/1000),days=Math.floor(seconds/86400);
+ seconds%=86400;
+ var hours=Math.floor(seconds/3600);seconds%=3600;
+ var minutes=Math.floor(seconds/60);seconds%=60;
+ $('cd-days').textContent=String(days).padStart(2,'0');
+ $('cd-hours').textContent=String(hours).padStart(2,'0');
+ $('cd-minutes').textContent=String(minutes).padStart(2,'0');
+ $('cd-seconds').textContent=String(seconds).padStart(2,'0');
+}
+updateCountdown();
+var countdownInterval=setInterval(updateCountdown,1000);
 </script></body></html>
